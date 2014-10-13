@@ -1,0 +1,52 @@
+db.voxxrin.aggregate([
+  {$unwind:"$schedule"},
+  {$match:{"schedule.room.name":{$ne:"Hall"}}},
+  {$project:{
+    _id:0,
+    dayNumber:1,
+    conference:"$id",
+    title:"$schedule.title",
+    room:"$schedule.room.name",
+    type:"$schedule.kind",
+    start:{$substr:["$schedule.fromTime", 11, 5]},
+    end:{$substr:["$schedule.toTime", 11, 5]},
+    id:{$substr:["$schedule.id", 7, 4]}
+  }},
+  {$group:{
+    _id:{
+      titre:"$conference", room:"$room"},
+    proposals:{
+      $addToSet:{
+        title:"$title",
+        start:"$start",
+        end:"$end",
+        type:"$type",
+        room:"$room",
+        id:"$id"
+        }}}
+  },
+  {$project:{
+    _id:0,
+    titre:"$_id.titre",
+    track:{
+      type:"$_id.room",
+      proposals:"$proposals"
+    }
+  }},
+  {$group:{
+    _id:{titre:"$titre"},
+    tracks:{$addToSet:"$track"}
+  }},
+  {$project:{
+    _id:0,
+    titre:{$literal:"BDX.IO"},
+    programme:{
+      jours:{
+        title:{$literal:"day1"},
+        date:{$literal:"17/10/2014"},
+        tracks:"$tracks"
+      }
+    }
+  }},
+  {$out:"likebox"}
+])
